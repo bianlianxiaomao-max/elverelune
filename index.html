@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ELVERE &amp; LUNE — Natural Crystal Bracelets</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- noscript fallback -->
+  <noscript>
+    <style>
+      .hero__inner,
+      .collection__header,
+      .hero__char { opacity: 1 !important; }
+    </style>
+  </noscript>
+</head>
+<body>
+
+  <!-- grain texture overlay -->
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="hero" id="hero">
+    <div class="hero__inner">
+      <p class="hero__label">NATURAL CRYSTALS</p>
+
+      <h1 class="hero__title" id="heroTitle">
+        <span class="hero__word">
+          <span class="hero__char">E</span><span class="hero__char">L</span><span class="hero__char">V</span><span class="hero__char">E</span><span class="hero__char">R</span><span class="hero__char">E</span>
+        </span>
+        <span class="hero__amp">&amp;</span>
+        <span class="hero__word">
+          <span class="hero__char">L</span><span class="hero__char">U</span><span class="hero__char">N</span><span class="hero__char">E</span>
+        </span>
+      </h1>
+
+      <p class="hero__subtitle">Objects shaped by nature.</p>
+      <p class="hero__scroll">SCROLL TO DISCOVER</p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       COLLECTION
+       ============================================================ -->
+  <section class="collection" id="collection">
+
+    <div class="collection__header">
+      <h2 class="collection__title">THE COLLECTION</h2>
+      <p class="collection__subtitle">
+        A quiet circle<br>of natural stones.
+      </p>
+    </div>
+
+    <div class="orbit-wrapper" id="orbitWrapper">
+
+      <div class="orbit-center" id="orbitCenter">
+        <span class="orbit-center__line">ELVERE</span>
+        <span class="orbit-center__amp">&amp;</span>
+        <span class="orbit-center__line">LUNE</span>
+      </div>
+
+      <div class="orbit" id="orbit">
+        <!-- JS generates .orbit-item elements here -->
+      </div>
+
+    </div>
+
+    <p class="explore-hint explore-hint--desktop" id="exploreHint">LEFT CLICK TO EXPLORE</p>
+    <p class="explore-hint explore-hint--mobile">TAP TO EXPLORE</p>
+    <p class="explore-exit" id="exploreExit"><span class="explore-exit__desktop">CLICK TO EXIT</span><span class="explore-exit__mobile">TAP TO EXIT</span></p>
+
+  </section>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
