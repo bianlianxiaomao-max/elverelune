@@ -12,71 +12,107 @@
 
   <link rel="stylesheet" href="style.css">
 
+  <!-- Three.js importmap -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
   <!-- noscript fallback -->
   <noscript>
     <style>
-      .hero__inner,
+      .hero-3d__label,
+      .hero-3d__title,
+      .hero-3d__subtitle,
+      .hero-3d__scroll,
       .collection__header,
-      .hero__char { opacity: 1 !important; }
+      .gallery-oval { opacity: 1 !important; }
     </style>
   </noscript>
+  <script>
+    // Force ParticleText canvas full-screen + resize
+    var done = false;
+    var check = setInterval(function() {
+      var c = document.querySelector('#hero3d canvas[aria-hidden]');
+      if (c && !done) {
+        done = true;
+        c.style.position = 'fixed';
+        c.style.top = '0'; c.style.left = '0';
+        c.style.width = '100vw'; c.style.height = '100vh';
+        // Directly call resize every 200ms until it works
+        var tries = 0;
+        var retry = setInterval(function() {
+          if (typeof particleText !== 'undefined' && particleText.resize) {
+            particleText.resize();
+            clearInterval(retry);
+          } else if (tries++ > 30) { clearInterval(retry); }
+        }, 200);
+        clearInterval(check);
+      }
+    }, 500);
+  </script>
 </head>
 <body>
 
   <!-- grain texture overlay -->
   <div class="grain" aria-hidden="true"></div>
 
+  <!-- transition blackout overlay (fades in on section switch) -->
+  <div class="transition-black" id="transitionBlack" aria-hidden="true"></div>
+
   <!-- ============================================================
-       HERO
+       SECTION 1: 3D FLOATING HERO
        ============================================================ -->
-  <section class="hero" id="hero">
-    <div class="hero__inner">
-      <p class="hero__label">NATURAL CRYSTALS</p>
+  <section class="hero-3d" id="hero3d">
+    <div class="hero-3d__bg" aria-hidden="true"></div>
+    <canvas class="hero-3d__particles" id="heroParticles" aria-hidden="true"></canvas>
 
-      <h1 class="hero__title" id="heroTitle">
-        <span class="hero__word">
-          <span class="hero__char">E</span><span class="hero__char">L</span><span class="hero__char">V</span><span class="hero__char">E</span><span class="hero__char">R</span><span class="hero__char">E</span>
-        </span>
-        <span class="hero__amp">&amp;</span>
-        <span class="hero__word">
-          <span class="hero__char">L</span><span class="hero__char">U</span><span class="hero__char">N</span><span class="hero__char">E</span>
-        </span>
+    <div class="hero-3d__stage" id="heroStage">
+      <div class="hero-3d__product" id="heroProduct">
+        <img class="hero-3d__img" src="images/product01.jpg" alt="ELVERE &amp; LUNE Signature Bracelet" draggable="false" />
+      </div>
+      <div class="hero-3d__reflection" aria-hidden="true"></div>
+    </div>
+
+    <div class="hero-3d__brand" id="heroBrand">
+      <p class="hero-3d__label">NATURAL CRYSTALS</p>
+      <h1 class="hero-3d__title">
+        <span class="hero-3d__word">ELVERE</span>
+        <span class="hero-3d__amp">&amp;</span>
+        <span class="hero-3d__word">LUNE</span>
       </h1>
+      <p class="hero-3d__subtitle">Objects shaped by nature.</p>
+    </div>
 
-      <p class="hero__subtitle">Objects shaped by nature.</p>
-      <p class="hero__scroll">SCROLL TO DISCOVER</p>
+    <div class="hero-3d__scroll" id="heroScroll">
+      <span class="hero-3d__scroll-line"></span>
+      <span class="hero-3d__scroll-text">CLICK TO VIEW</span>
     </div>
   </section>
 
   <!-- ============================================================
-       COLLECTION
+       SECTION 2: GUIDE — TRANSITION PAGE
+       ============================================================ -->
+  <section class="guide" id="guide">
+    <div class="guide__bg" id="guideBg" aria-hidden="true"></div>
+    <div class="guide__text" id="guideText"></div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 3: COLLECTION — ELLIPTICAL FLOATING SHOWCASE
        ============================================================ -->
   <section class="collection" id="collection">
 
     <div class="collection__header">
       <h2 class="collection__title">THE COLLECTION</h2>
-      <p class="collection__subtitle">
-        A quiet circle<br>of natural stones.
-      </p>
+      <p class="collection__subtitle">A constellation of natural stones.</p>
     </div>
 
-    <div class="orbit-wrapper" id="orbitWrapper">
-
-      <div class="orbit-center" id="orbitCenter">
-        <span class="orbit-center__line">ELVERE</span>
-        <span class="orbit-center__amp">&amp;</span>
-        <span class="orbit-center__line">LUNE</span>
-      </div>
-
-      <div class="orbit" id="orbit">
-        <!-- JS generates .orbit-item elements here -->
-      </div>
-
-    </div>
-
-    <p class="explore-hint explore-hint--desktop" id="exploreHint">LEFT CLICK TO EXPLORE</p>
-    <p class="explore-hint explore-hint--mobile">TAP TO EXPLORE</p>
-    <p class="explore-exit" id="exploreExit"><span class="explore-exit__desktop">CLICK TO EXIT</span><span class="explore-exit__mobile">TAP TO EXIT</span></p>
+    <div id="infiniteMenuWrapper" style="position:relative;width:100%;flex:1;min-height:0;"></div>
 
   </section>
 
@@ -85,6 +121,12 @@
        ============================================================ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  <script src="script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/gl-matrix-min.js"></script>
+  <script src="components/InfiniteMenu/InfiniteMenu.js"></script>
+  <script src="components/ParticleBackground/ParticleBackground.js"></script>
+  <script src="components/ParticleText/ParticleText.js?v=13"></script>
+  <script src="components/TextType/TextType.js"></script>
+  <script type="module" src="components/GhostCursor/GhostCursor.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

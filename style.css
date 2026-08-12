@@ -19,6 +19,8 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -28,11 +30,8 @@ body {
   font-weight: 400;
   font-size: 18px;
   line-height: 1.6;
-  overflow-x: hidden;
-}
-
-body.exploring {
   overflow: hidden;
+  height: 100%;
 }
 
 img {
@@ -56,6 +55,17 @@ img {
   background-size: 180px 180px;
 }
 
+/* Transition blackout — covers hero bg + crystal dust (z≤2), below text particles (z4) */
+.transition-black {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease;
+}
+
 /* ----------------------------------------------------------
    2. TYPOGRAPHY
    ---------------------------------------------------------- */
@@ -65,446 +75,452 @@ h1, h2, h3 {
   line-height: 1.15;
 }
 
-/* ----------------------------------------------------------
-   3. HERO
-   ---------------------------------------------------------- */
+/* ============================================================
+   3. 3D FLOATING HERO
+   ============================================================ */
 
-.hero {
-  position: relative;
+.hero-3d {
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100vh;
-  min-height: 600px;
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.hero-3d__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(30,28,26,0.35) 0%, rgba(12,10,8,0.92) 100%),
+    radial-gradient(ellipse at 65% 55%, rgba(80,60,40,0.25) 0%, transparent 60%),
+    radial-gradient(ellipse at 35% 45%, rgba(50,40,60,0.18) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.hero-3d__particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Hero product — hidden (brand text is the hero now) */
+.hero-3d__stage,
+.hero-3d__product,
+.hero-3d__img,
+.hero-3d__reflection {
+  display: none;
+}
+
+.hero-3d__brand {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 2rem;
+  pointer-events: none;
 }
 
-.hero__inner {
-  /* children animated individually by JS */
-}
-
-/* --- label: NATURAL CRYSTALS --- */
-.hero__label {
+.hero-3d__label {
   font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
   font-size: 0.65rem;
   font-weight: 400;
   letter-spacing: 0.35em;
-  color: #8a8a8a;
-  margin-bottom: 1.5rem;
+  color: rgba(232,217,197,0.50);
+  margin-bottom: 1.2rem;
   opacity: 0;
 }
 
-/* --- title: ELVERE & LUNE (character spans) --- */
-.hero__title {
+.hero-3d__title {
   font-size: clamp(2.5rem, 5.5vw, 5rem);
-  font-weight: 300;
-  letter-spacing: 0.12em;
-  color: #1a1a1a;
-  margin-bottom: 1rem;
-  /* characters are inline — they wrap naturally */
-}
-
-.hero__word {
-  display: inline-block;
-  white-space: nowrap;
-}
-
-.hero__char {
-  display: inline-block;
+  font-weight: 400;
+  letter-spacing: 0.30em;
+  color: #D8C3A5;
+  margin-bottom: 0.8rem;
   opacity: 0;
-  filter: blur(6px);
-  will-change: opacity, filter, transform;
 }
 
-.hero__amp {
+.hero-3d__word { display: inline-block; }
+
+.hero-3d__amp {
   display: inline-block;
   font-style: italic;
   font-weight: 300;
-  color: #9a9a9a;
+  color: rgba(216,195,165,0.50);
   margin: 0 0.25em;
-  opacity: 0;
-  filter: blur(6px);
 }
 
-/* --- subtitle --- */
-.hero__subtitle {
+.hero-3d__subtitle {
   font-size: clamp(1rem, 1.6vw, 1.35rem);
   font-style: italic;
   font-weight: 300;
-  color: #5a5a5a;
-  margin-bottom: 3.5rem;
+  color: rgba(232,217,197,0.45);
   opacity: 0;
-  filter: blur(4px);
-  transform: translateY(12px);
 }
 
-/* --- scroll hint --- */
-.hero__scroll {
+.hero-3d__scroll {
+  position: absolute;
+  z-index: 5;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.hero-3d__scroll-line {
+  display: block;
+  width: 1px;
+  height: 40px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 0.5px;
+}
+
+.hero-3d__scroll-text {
   font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
   font-size: 0.6rem;
   font-weight: 400;
   letter-spacing: 0.4em;
-  color: #b0b0b0;
-  opacity: 0;
+  color: rgba(255,255,255,0.35);
 }
 
-/* scroll hint breathing animation (applied after initial reveal) */
-.hero__scroll--breathing {
-  animation: heroScrollBreathe 3.2s ease-in-out infinite;
+.hero-3d__scroll--breathing .hero-3d__scroll-line {
+  animation: scrollLineBreathe 3.2s ease-in-out infinite;
+}
+.hero-3d__scroll--breathing .hero-3d__scroll-text {
+  animation: scrollTextBreathe 3.2s ease-in-out infinite;
 }
 
-@keyframes heroScrollBreathe {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(4px); }
+@keyframes scrollLineBreathe {
+  0%, 100% { height: 40px; opacity: 0.25; }
+  50% { height: 52px; opacity: 0.45; }
+}
+@keyframes scrollTextBreathe {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.55; }
 }
 
-/* ----------------------------------------------------------
-   4. COLLECTION — HEADER
-   ---------------------------------------------------------- */
+/* ============================================================
+   4. GUIDE — TRANSITION PAGE
+      Dark luxury, Canvas 2D organic mist, GhostCursor trail
+      Z-index: bg(0) → text(10)
+   ============================================================ */
+
+.guide {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+  visibility: hidden;
+}
+
+/* ── GhostCursor canvas (organic mist + trail) ── */
+.guide__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* ── Text — multiply blend silhouette: black text blocks mist light ── */
+.guide__text {
+  position: relative;
+  z-index: 10;
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  text-align: center;
+  line-height: 1.3;
+  color: #000000;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.guide__text .text-type__text {
+  display: inline;
+  color: inherit;
+}
+
+/* Line 1 — main title, pure black (multiply blocks mist) */
+.guide__text .text-type__line--0 {
+  display: block;
+  font-size: clamp(42px, 5vw, 72px);
+  letter-spacing: 0.15em;
+  font-weight: 400;
+  margin-bottom: 0.28em;
+  color: #000000;
+}
+
+/* Line 2 — subtitle */
+.guide__text .text-type__line--1 {
+  display: block;
+  font-size: clamp(28px, 3.3vw, 48px);
+  letter-spacing: 0.15em;
+  font-weight: 300;
+  color: #000000;
+}
+
+/* ── Click guide — text becomes clickable after typing completes ── */
+.guide__text--clickable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.guide__text--clickable .text-type__line--1 {
+  animation: scrollTextBreathe 3.2s ease-in-out infinite;
+}
+
+/* Cursor */
+.guide__text .text-type__cursor {
+  display: inline;
+  font-size: clamp(28px, 3.3vw, 48px);
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0;
+  margin-left: 0.03em;
+}
+
+/* ============================================================
+   5. COLLECTION — FLOATING OVAL GALLERY
+   ============================================================ */
 
 .collection {
-  position: relative;
-  padding: 6rem 2rem 4rem;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 6rem 2rem 0;
+  background: #000;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  visibility: hidden;
 }
 
 .collection__header {
   text-align: center;
   margin-bottom: 3rem;
   opacity: 0;
+  flex-shrink: 0;
 }
 
 .collection__title {
-  font-size: clamp(1.6rem, 2.8vw, 2.4rem);
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  color: #1a1a1a;
-  margin-bottom: 0.8rem;
+  color: #D8C3A5;
 }
 
 .collection__subtitle {
-  font-size: clamp(0.95rem, 1.4vw, 1.15rem);
-  font-style: italic;
-  font-weight: 300;
-  color: #7a7a7a;
-  line-height: 1.5;
+  color: rgba(216,195,165,0.6);
 }
 
-/* ----------------------------------------------------------
-   5. ORBIT — WRAPPER
-   ---------------------------------------------------------- */
-
-.orbit-wrapper {
-  position: relative;
-  width: 100%;
-  height: clamp(420px, 65vw, 780px);
-  margin: 0 auto;
-  overflow: hidden;
-  touch-action: pan-y;            /* allow vertical scroll when touch starts on orbit */
-  transition: all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
-/* ----------------------------------------------------------
-   6. ORBIT — CONTAINER
-   ---------------------------------------------------------- */
-
-.orbit {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-  transition: left 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
-              top 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
-  will-change: transform, left, top;
-}
-
-/* ----------------------------------------------------------
-   7. ORBIT — CENTER BRAND TEXT
-   ---------------------------------------------------------- */
-
-.orbit-center {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  pointer-events: none;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  transition: opacity 0.5s ease;
-}
-
-.orbit-center::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: clamp(120px, 16vw, 180px);
-  height: clamp(120px, 16vw, 180px);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(250, 248, 245, 0.95) 0%,
-    rgba(250, 248, 245, 0.75) 55%,
-    transparent 100%
-  );
-  z-index: -1;
-}
-
-.orbit-center__line {
-  font-size: clamp(1.2rem, 2.2vw, 2rem);
-  font-weight: 500;
-  letter-spacing: 0.18em;
-  color: #1a1a1a;
-  line-height: 1.1;
-}
-
-.orbit-center__amp {
-  font-size: clamp(0.9rem, 1.6vw, 1.4rem);
-  font-style: italic;
-  font-weight: 300;
-  color: #9a9a9a;
-}
-
-/* ----------------------------------------------------------
-   8. ORBIT — ITEMS (photographic / paper feel)
-   ---------------------------------------------------------- */
-
-.orbit-item {
-  position: absolute;
-  will-change: transform, opacity, filter;
-  cursor: pointer;
-  transition: opacity 0.4s ease,
-              filter 0.4s ease;
-}
-
-.orbit-item__img {
-  display: block;
+#infinite-grid-menu-canvas {
+  cursor: grab;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 2px;
-  /* soft, photographic shadow — like a physical print */
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 4px 8px rgba(0, 0, 0, 0.04),
-    0 12px 28px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(0, 0, 0, 0.03);
-  transition: box-shadow 0.5s ease,
-              transform 0.5s ease;
-  pointer-events: auto;
+  overflow: hidden;
+  position: relative;
+  outline: none;
 }
 
-/* hover — very subtle lift */
-.orbit-item:hover .orbit-item__img {
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.06),
-    0 8px 16px rgba(0, 0, 0, 0.06),
-    0 20px 40px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(0, 0, 0, 0.04);
-  transform: scale(1.03);
-}
+#infinite-grid-menu-canvas:active { cursor: grabbing; }
 
-/* ----------------------------------------------------------
-   9. EXPLORE HINT & EXIT
-   ---------------------------------------------------------- */
-
-.explore-hint,
-.explore-exit {
-  text-align: center;
-  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.6rem;
+.face-title {
+  user-select: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(20%, -50%);
+  font-family: 'Cormorant Garamond', Georgia, serif;
   font-weight: 400;
-  letter-spacing: 0.35em;
-  color: #b0b0b0;
-  margin-top: 2.5rem;
-  transition: opacity 0.4s ease;
+  font-size: clamp(1.4rem, 3vw, 2.5rem);
+  letter-spacing: 0.15em;
+  color: #F5EEDC;
+  left: 1.6em;
+  z-index: 10;
 }
 
-/* desktop hint shown, mobile hint hidden by default */
-.explore-hint--desktop { display: block; }
-.explore-hint--mobile  { display: none; }
-
-.explore-exit {
-  display: none;
-  color: #8a8a8a;
-  cursor: pointer;
-  user-select: none;
-}
-
-.explore-exit__desktop { display: inline; }
-.explore-exit__mobile  { display: none; }
-
-.orbit-wrapper.exploring ~ .explore-exit {
-  display: block;
-  position: fixed;
-  bottom: 2.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 200;
-  font-size: 0.65rem;
-  letter-spacing: 0.35em;
-  color: #7a7a7a;
-  cursor: pointer;
-  user-select: none;
-  transition: color 0.3s ease;
-}
-
-.orbit-wrapper.exploring ~ .explore-exit:hover {
-  color: #1a1a1a;
-}
-
-.orbit-wrapper.exploring ~ .explore-hint {
-  display: none;
-}
-
-/* on touch devices: show mobile hint, hide desktop hint */
-@media (pointer: coarse) {
-  .explore-hint--desktop { display: none; }
-  .explore-hint--mobile  { display: block; }
-  .explore-exit__desktop { display: none; }
-  .explore-exit__mobile  { display: inline; }
-}
-
-/* ----------------------------------------------------------
-   10. EXPLORE MODE — FULLSCREEN
-   ---------------------------------------------------------- */
-
-.orbit-wrapper.exploring {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  z-index: 100;
-  background-color: #faf8f5;
-  margin: 0;
-  overflow: visible;
-  touch-action: none;
-}
-
-.orbit-wrapper.exploring .orbit-center {
-  opacity: 0.2;
-}
-
-body.exploring .hero,
-body.exploring .collection__header {
-  opacity: 0.2;
-  pointer-events: none;
+.face-title.active {
+  opacity: 1;
+  pointer-events: auto;
   transition: opacity 0.5s ease;
 }
 
-/* ----------------------------------------------------------
-   11. RESPONSIVE — TABLET
-   ---------------------------------------------------------- */
+.face-title.inactive {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+}
+
+.face-description {
+  user-select: none;
+  position: absolute;
+  max-width: 12ch;
+  top: 50%;
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 300;
+  font-style: italic;
+  letter-spacing: 0.05em;
+  color: rgba(245,238,220,0.7);
+  right: 3%;
+  transform: translate(0, -50%);
+  z-index: 10;
+}
+
+.face-description.active {
+  opacity: 1;
+  transform: translate(-100%, -50%);
+  pointer-events: auto;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.face-description.inactive {
+  pointer-events: none;
+  transform: translate(-60%, -50%);
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.action-button {
+  position: absolute;
+  left: 50%;
+  z-index: 10;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  background: #D8C3A5;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.action-button-icon {
+  user-select: none;
+  position: relative;
+  color: #1a1a1a;
+  top: 2px;
+  font-size: 24px;
+}
+
+.action-button.active {
+  bottom: 3.8em;
+  transform: translateX(-50%) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.5s ease, transform 0.5s ease, bottom 0.5s ease;
+}
+
+.action-button.inactive {
+  bottom: -80px;
+  transform: translateX(-50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+}
+
+@media (max-width: 1500px) {
+  .face-title, .face-description { display: none; }
+}
+
+/* ============================================================
+   6. RESPONSIVE — TABLET
+   ============================================================ */
 
 @media (max-width: 1024px) {
-  .hero {
+  .hero-3d {
     min-height: 500px;
   }
-
-  .hero__label {
-    letter-spacing: 0.28em;
-  }
-
-  .collection {
-    padding: 4rem 1.5rem 3rem;
-  }
-
-  .orbit-wrapper {
-    height: clamp(360px, 60vw, 600px);
-  }
-
-  .collection__header {
-    margin-bottom: 2rem;
-  }
 }
 
-/* ----------------------------------------------------------
-   12. RESPONSIVE — MOBILE
-   ---------------------------------------------------------- */
+/* ============================================================
+   7. RESPONSIVE — MOBILE
+   ============================================================ */
 
 @media (max-width: 600px) {
-  .hero {
+  .hero-3d {
     min-height: 100vh;
     min-height: 100dvh;
-    padding: 1.5rem;
   }
 
-  .hero__label {
+  .guide {
+    min-height: 100svh;
+    min-height: 100dvh;
+  }
+
+  .guide__text .text-type__line--0 {
+    font-size: 32px;
+    letter-spacing: 0.15em;
+  }
+
+  .guide__text .text-type__line--1 {
+    font-size: 22px;
+    letter-spacing: 0.15em;
+  }
+
+  .guide__text .text-type__cursor {
+    font-size: 22px;
+  }
+
+  .hero-3d__label {
     font-size: 0.6rem;
     letter-spacing: 0.22em;
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
   }
 
-  .hero__title {
+  .hero-3d__title {
     font-size: 2rem;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.20em;
   }
 
-  .hero__subtitle {
-    font-size: 0.95rem;
-    margin-bottom: 2.5rem;
-  }
+  .hero-3d__subtitle { font-size: 0.95rem; }
 
-  .hero__scroll {
-    font-size: 0.55rem;
-    letter-spacing: 0.3em;
-  }
-
-  .collection {
-    padding: 3rem 1rem 2.5rem;
-  }
-
-  .collection__title {
-    font-size: 1.3rem;
-    letter-spacing: 0.14em;
-  }
-
-  .collection__subtitle {
-    font-size: 0.85rem;
-  }
-
-  .collection__header {
-    margin-bottom: 1.5rem;
-  }
-
-  .orbit-wrapper {
-    height: clamp(320px, 85vw, 480px);
-  }
-
-  .orbit-center__line {
-    font-size: 1rem;
-  }
-
-  .orbit-center__amp {
-    font-size: 0.75rem;
-  }
-
-  .explore-hint,
-  .explore-exit {
-    font-size: 0.55rem;
-    letter-spacing: 0.25em;
-    margin-top: 1.8rem;
-  }
+  .hero-3d__scroll { bottom: 1.8rem; }
+  .hero-3d__scroll-text { font-size: 0.55rem; letter-spacing: 0.3em; }
 }
 
-/* ----------------------------------------------------------
-   13. RESPONSIVE — VERY SMALL
-   ---------------------------------------------------------- */
+/* ============================================================
+   8. RESPONSIVE — VERY SMALL
+   ============================================================ */
 
 @media (max-width: 380px) {
-  .orbit-wrapper {
-    height: 300px;
+  .guide__text .text-type__line--0 {
+    font-size: 28px;
+    letter-spacing: 0.13em;
+  }
+  .guide__text .text-type__line--1 {
+    font-size: 18px;
+    letter-spacing: 0.13em;
+  }
+  .guide__text .text-type__cursor {
+    font-size: 18px;
   }
 
-  .hero__title {
-    font-size: 1.7rem;
+  .hero-3d__title { font-size: 1.7rem; }
+}
+
+/* ============================================================
+   9. REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-3d__scroll-line,
+  .hero-3d__scroll-text {
+    animation: none !important;
   }
 }

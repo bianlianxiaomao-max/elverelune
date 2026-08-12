@@ -9,3 +9,21 @@ desktop.ini
 
 # Node (if any future use)
 node_modules/
+
+# Local dev / tooling (not needed for GitHub Pages)
+server.js
+package.json
+package-lock.json
+analyze-video.js
+extract-frames.ps1
+gc-test.html
+
+# Project internals
+backups/
+planning/
+reference/
+.claude/
+CLAUDE.md
+
+# Backups
+*.backup.js
