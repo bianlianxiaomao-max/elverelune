@@ -197,7 +197,8 @@
 
     var img = offCtx.getImageData(0, 0, off.width, off.height);
     var targets = [];
-    var step = Math.max(2, Math.floor(self.opts.density));
+    // 手机端用更密采样（step=2），文字更实不模糊
+    var step = self._isMobile ? 2 : Math.max(2, Math.floor(self.opts.density));
     for (var y = 0; y < off.height; y += step) {
       for (var x = 0; x < off.width; x += step) {
         var a = img.data[(y * off.width + x) * 4 + 3];
@@ -413,7 +414,8 @@
     }
 
     // ═══ Draw text particles on top (boosted blur for soft fusion) ═══
-    self.ctx.shadowBlur = self.opts.particleSize * 8;
+    // 手机端降低 glow 光晕，避免文字发虚模糊
+    self.ctx.shadowBlur = self.opts.particleSize * (self._isMobile ? 4 : 8);
     for (var ti = 0; ti < self.particles.length; ti++) {
       var p = self.particles[ti];
       if (p.isAmbient) continue;
