@@ -102,7 +102,9 @@ export function createGhostCursor(parentEl, options = {}) {
     if(!active)return;
     const w=renderer.domElement.clientWidth,h=renderer.domElement.clientHeight;
     if(w<=0||h<=0)return;
-    renderer.setPixelRatio(Math.min(devicePixelRatio||1,0.5));
+    // 手机端降低像素比以减轻 bloom 后处理负担，避免卡顿
+    const isMobile = w < 768;
+    renderer.setPixelRatio(Math.min(devicePixelRatio||1, isMobile ? 1 : 1.5));
     renderer.setSize(w,h,false);
     composer.setSize(w,h);
     mat.uniforms.iResolution.value.set(w,h,1);

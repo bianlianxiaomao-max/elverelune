@@ -466,6 +466,14 @@
   // Public: resize
   // ----------------------------------------------------------
 
+  ParticleBackground.prototype.pause = function() {
+    this.paused = true;
+  };
+
+  ParticleBackground.prototype.resume = function() {
+    this.paused = false;
+  };
+
   ParticleBackground.prototype.resize = function() {
     var self = this;
     if (self.destroyed || !self.canvas) return;

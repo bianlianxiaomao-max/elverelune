@@ -128,6 +128,11 @@ import { createLanyard } from './components/Lanyard/Lanyard.js';
       items: COLLECTION_ITEMS,
       scale: 1.0
     });
+
+    // 第三页未显示前先暂停 WebGL 渲染循环，避免后台空转拖慢手机端
+    if (infiniteMenu && infiniteMenu.pause) {
+      infiniteMenu.pause();
+    }
   }
 
   // ============================================================
@@ -462,6 +467,10 @@ import { createLanyard } from './components/Lanyard/Lanyard.js';
       currentSection = 1;
       isTransitioning = false;
 
+      // 暂停第一页渲染循环（文字已下落完、背景粒子不再需要）
+      if (particleText && particleText.pause) particleText.pause();
+      if (particleBackground && particleBackground.pause) particleBackground.pause();
+
       // 3. Reveal guide's black background
       setTimeout(function() {
         if (transitionBlack) transitionBlack.style.opacity = '0';
@@ -545,6 +554,9 @@ import { createLanyard } from './components/Lanyard/Lanyard.js';
       if (collectionSection) collectionSection.style.visibility = 'visible';
       currentSection = 2;
       isTransitioning = false;
+
+      // 恢复第三页 WebGL 渲染循环
+      if (infiniteMenu && infiniteMenu.resume) infiniteMenu.resume();
 
       // 4. 黑屏淡出
       setTimeout(function() {

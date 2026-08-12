@@ -86,9 +86,12 @@
     self.pointer = { active: false, x: 0, y: 0, smoothX: 0, smoothY: 0 };
     self.falling = false;
     self.fallStart = 0;
+    self.paused = false;
     self._onFallComplete = null;
     self.reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     self._isMobile = window.innerWidth <= 600;
+    self.fontScale = 1;
+    self.effParticleSize = self.opts.particleSize;
 
     // ── DOM ──
     self.wrapper = document.createElement('div');
@@ -135,7 +138,7 @@
     self.height = Math.floor(rect.height);
     if (self.width <= 0 || self.height <= 0) return;
 
-    self.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    self.dpr = Math.min(window.devicePixelRatio || 1, 3);
     self.canvas.width = Math.max(1, Math.floor(self.width * self.dpr));
     self.canvas.height = Math.max(1, Math.floor(self.height * self.dpr));
     self.ctx.setTransform(self.dpr, 0, 0, self.dpr, 0, 0);
@@ -178,6 +181,10 @@
       metrics = offCtx.measureText(content);
     }
 
+    // 字号缩放因子：PC 基准 128px，手机字号小则等比缩小粒子尺寸/采样步长/光晕，保证视觉一致
+    self.fontScale = Math.max(0.3, Math.min(1.2, fontSize / 128));
+    self.effParticleSize = self.opts.particleSize * self.fontScale;
+
     var left = Math.ceil(metrics.actualBoundingBoxLeft || 0);
     var right = Math.ceil(metrics.actualBoundingBoxRight || metrics.width);
     var ascent = Math.ceil(metrics.actualBoundingBoxAscent || fontSize * 0.78);
@@ -197,8 +204,8 @@
 
     var img = offCtx.getImageData(0, 0, off.width, off.height);
     var targets = [];
-    // 手机端最密采样（step=1），细笔画也有粒子，不残缺
-    var step = self._isMobile ? 1 : Math.max(2, Math.floor(self.opts.density));
+    // 采样步长随字号等比缩放：PC 3px @128px 字号 ≈ 手机 1px @47px 字号
+    var step = Math.max(1, Math.round(Math.max(2, Math.floor(self.opts.density)) * self.fontScale));
     for (var y = 0; y < off.height; y += step) {
       for (var x = 0; x < off.width; x += step) {
         var a = img.data[(y * off.width + x) * 4 + 3];
@@ -213,8 +220,7 @@
     }
 
     // ── Text particles ──
-    // 手机端提高粒子上限 + 更小的面积系数，避免 stride 抽取导致字母残缺
-    var maxParticles = Math.max(900, Math.min(self._isMobile ? 9000 : 5200, Math.floor((self.width * self.height) / (self._isMobile ? 38 : 90))));
+    var maxParticles = Math.max(900, Math.min(5200, Math.floor((self.width * self.height) / 90)));
     var stride = Math.max(1, Math.ceil(targets.length / maxParticles));
     var baseRgb = hexToRgb(self.opts.color) || { r: 216, g: 195, b: 165 };
     var highlightRgb = hexToRgb(self.opts.highlightColor) || { r: 201, g: 184, b: 150 };
@@ -230,15 +236,15 @@
       var sx = t.x + Math.cos(angle) * dist + (seed - 0.5) * scatter * 0.45;
       var sy = t.y + Math.sin(angle) * dist + (depth - 0.9) * scatter * 0.45;
 
-      // Add jitter to target so text particles don't sit on a sampling grid
-      var jitterAmp = self._isMobile ? 1.5 : 5;
+      // Add jitter to target so text particles don't sit on a sampling grid（随字号缩放）
+      var jitterAmp = 5 * self.fontScale;
       var jitterX = (Math.random() - 0.5) * jitterAmp;
       var jitterY = (Math.random() - 0.5) * jitterAmp;
 
       return {
         x: sx, y: sy, startX: sx, startY: sy,
         targetX: t.x + jitterX, targetY: t.y + jitterY,
-        size: Math.max(0.8, self.opts.particleSize * (0.8 + Math.random() * 1.6)),
+        size: Math.max(0.5, self.effParticleSize * (0.8 + Math.random() * 1.6)),
         color: pColor, seed: seed, depth: depth,
         delay: Math.random() * self.opts.stagger,
         isAmbient: false
@@ -271,7 +277,7 @@
         x: sx, y: sy,
         startX: sx, startY: sy,
         targetX: ax, targetY: ay,
-        size: self.opts.particleSize * (0.7 + Math.random() * 2.0),
+        size: self.effParticleSize * (0.7 + Math.random() * 2.0),
         color: aColor,
         seed: aseed,
         depth: adepth,
@@ -354,7 +360,7 @@
     self.ctx.clearRect(0, 0, self.width, self.height);
 
     if (self.opts.glow && !self.reducedMotion) {
-      self.ctx.shadowBlur = self.opts.particleSize * 3;
+      self.ctx.shadowBlur = self.effParticleSize * 3;
       self.ctx.shadowColor = self.opts.highlightColor;
     } else {
       self.ctx.shadowBlur = 0;
@@ -371,7 +377,7 @@
     // ═══ Draw ambient particles first (subtle glow, organic drift) ═══
     // Save + reduce blur for ambient (softer background)
     var savedBlur = self.ctx.shadowBlur;
-    self.ctx.shadowBlur = self.opts.particleSize * 1.5;
+    self.ctx.shadowBlur = self.effParticleSize * 1.5;
     for (var ai = 0; ai < self.particles.length; ai++) {
       var pa = self.particles[ai];
       if (!pa.isAmbient) continue;
@@ -416,8 +422,7 @@
     }
 
     // ═══ Draw text particles on top (boosted blur for soft fusion) ═══
-    // 手机端大幅降低 glow 光晕，文字锐利不糊
-    self.ctx.shadowBlur = self.opts.particleSize * (self._isMobile ? 2 : 8);
+    self.ctx.shadowBlur = self.effParticleSize * 8;
     for (var ti = 0; ti < self.particles.length; ti++) {
       var p = self.particles[ti];
       if (p.isAmbient) continue;
@@ -542,6 +547,19 @@
         cb();
       }
     }
+  };
+
+  ParticleText.prototype.pause = function() {
+    var self = this;
+    self.paused = true;
+    if (self.af) { cancelAnimationFrame(self.af); self.af = null; }
+  };
+
+  ParticleText.prototype.resume = function() {
+    var self = this;
+    if (!self.paused || self.destroyed) return;
+    self.paused = false;
+    self._ensureLoop();
   };
 
   ParticleText.prototype.destroy = function() {
