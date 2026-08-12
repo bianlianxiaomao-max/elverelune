@@ -197,8 +197,8 @@
 
     var img = offCtx.getImageData(0, 0, off.width, off.height);
     var targets = [];
-    // 手机端用更密采样（step=2），文字更实不模糊
-    var step = self._isMobile ? 2 : Math.max(2, Math.floor(self.opts.density));
+    // 手机端最密采样（step=1），细笔画也有粒子，不残缺
+    var step = self._isMobile ? 1 : Math.max(2, Math.floor(self.opts.density));
     for (var y = 0; y < off.height; y += step) {
       for (var x = 0; x < off.width; x += step) {
         var a = img.data[(y * off.width + x) * 4 + 3];
@@ -213,7 +213,8 @@
     }
 
     // ── Text particles ──
-    var maxParticles = Math.max(900, Math.min(5200, Math.floor((self.width * self.height) / 90)));
+    // 手机端提高粒子上限 + 更小的面积系数，避免 stride 抽取导致字母残缺
+    var maxParticles = Math.max(900, Math.min(self._isMobile ? 9000 : 5200, Math.floor((self.width * self.height) / (self._isMobile ? 38 : 90))));
     var stride = Math.max(1, Math.ceil(targets.length / maxParticles));
     var baseRgb = hexToRgb(self.opts.color) || { r: 216, g: 195, b: 165 };
     var highlightRgb = hexToRgb(self.opts.highlightColor) || { r: 201, g: 184, b: 150 };
@@ -230,8 +231,9 @@
       var sy = t.y + Math.sin(angle) * dist + (depth - 0.9) * scatter * 0.45;
 
       // Add jitter to target so text particles don't sit on a sampling grid
-      var jitterX = (Math.random() - 0.5) * 5;
-      var jitterY = (Math.random() - 0.5) * 5;
+      var jitterAmp = self._isMobile ? 1.5 : 5;
+      var jitterX = (Math.random() - 0.5) * jitterAmp;
+      var jitterY = (Math.random() - 0.5) * jitterAmp;
 
       return {
         x: sx, y: sy, startX: sx, startY: sy,
@@ -414,8 +416,8 @@
     }
 
     // ═══ Draw text particles on top (boosted blur for soft fusion) ═══
-    // 手机端降低 glow 光晕，避免文字发虚模糊
-    self.ctx.shadowBlur = self.opts.particleSize * (self._isMobile ? 4 : 8);
+    // 手机端大幅降低 glow 光晕，文字锐利不糊
+    self.ctx.shadowBlur = self.opts.particleSize * (self._isMobile ? 2 : 8);
     for (var ti = 0; ti < self.particles.length; ti++) {
       var p = self.particles[ti];
       if (p.isAmbient) continue;
