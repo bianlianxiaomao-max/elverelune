@@ -3,6 +3,9 @@
  * 复现 React Bits <Lanyard /> 的核心效果：挂绳 + 卡片 + 物理摆动 + 可拖拽。
  * 零新增依赖（复用项目已有的 three，走 importmap）。
  *
+ * 全屏覆盖（跟浏览器窗口一样大），挂牌从屏幕左上角垂下，可拖到全屏任意位置。
+ * 用 window 捕获阶段监听 + 命中检测，命中卡片才拖拽，不挡 3D 球交互。
+ *
  * 用法：
  *   import { createLanyard } from './components/Lanyard/Lanyard.js';
  *   const lanyard = createLanyard({ onReady: ... });
@@ -24,22 +27,18 @@ export function createLanyard(options = {}) {
     ...options,
   };
 
-  // ── Canvas（固定在左上角区域）──
+  // ── Canvas（全屏覆盖，跟浏览器窗口一样大）──
   const canvas = document.createElement('canvas');
   canvas.style.cssText =
-    'position:fixed;left:0;top:0;width:420px;height:640px;z-index:' + opts.zIndex +
+    'position:fixed;inset:0;width:100%;height:100%;z-index:' + opts.zIndex +
     ';pointer-events:none;opacity:0;transition:opacity 0.5s ease;';
   document.body.appendChild(canvas);
 
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setSize(420, 640, false);
   renderer.setClearColor(0x000000, 0);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(35, 420 / 640, 0.1, 50);
-  camera.position.set(0, 0, 8);
-  camera.lookAt(0, -0.6, 0);
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 60);
 
   // 灯光
   scene.add(new THREE.AmbientLight(0xffffff, 1.6));
@@ -55,27 +54,21 @@ export function createLanyard(options = {}) {
     const c = document.createElement('canvas');
     c.width = 512; c.height = 320;
     const ctx = c.getContext('2d');
-    // 背景
     ctx.fillStyle = '#171310';
     ctx.fillRect(0, 0, 512, 320);
-    // 内边框
     ctx.strokeStyle = '#D8C3A5';
     ctx.lineWidth = 6;
     ctx.strokeRect(18, 18, 476, 284);
-    // 顶部小装饰线
     ctx.fillStyle = '#D8C3A5';
     ctx.fillRect(200, 18, 112, 3);
-    // 标题
     ctx.fillStyle = '#E8DCC8';
     ctx.font = '600 54px Georgia, "Times New Roman", serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('ELVERE & LUNE', 256, 150);
-    // 副标题
     ctx.fillStyle = 'rgba(216,195,165,0.75)';
     ctx.font = '300 22px Georgia, serif';
     ctx.fillText('NATURAL CRYSTALS', 256, 210);
-    // 底部小字
     ctx.fillStyle = 'rgba(216,195,165,0.5)';
     ctx.font = '300 14px Georgia, serif';
     ctx.fillText('SINCE  ·  MMXXV', 256, 270);
@@ -112,15 +105,41 @@ export function createLanyard(options = {}) {
   });
 
   // ── Verlet 物理 ──
-  const anchor = new THREE.Vector3(0, 2.9, 0); // 固定点（屏幕上方）
+  const anchor = new THREE.Vector3();
   const segLen = ROPE_LENGTH / SEGMENTS;
   const pts = [];
-  for (let i = 0; i <= SEGMENTS; i++) {
-    const p = new THREE.Vector3(0, anchor.y - i * segLen, 0);
-    pts.push({ pos: p.clone(), prev: p.clone(), fixed: i === 0 });
+
+  // 布局：根据屏幕宽高动态设置相机距离和锚点，让挂牌大小自适应、锚在屏幕左上角
+  function layout() {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(W, H, false);
+    camera.aspect = W / H;
+
+    // 目标卡片屏幕宽度（px），随屏宽缩放，clamp 到 130~200px 保证手机/桌面都合适
+    const cardScreenW = Math.min(200, Math.max(130, W * 0.16));
+    const halfFovTan = Math.tan((camera.fov * Math.PI / 180) / 2);
+    // 反推相机距离：卡片世界宽 CARD_W 投影为 cardScreenW 像素
+    const z = (CARD_W * H) / (2 * halfFovTan * cardScreenW);
+    camera.position.set(0, 0, z);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+
+    const halfH = halfFovTan * z;
+    const halfW = halfH * camera.aspect;
+    // 锚点在屏幕顶部、偏左（卡片左边缘留一点边距）
+    anchor.set(-halfW + CARD_W * 0.5 + CARD_W * 0.2, halfH, 0);
+
+    // 重建 verlet 点（绳子从锚点垂直垂下）
+    pts.length = 0;
+    for (let i = 0; i <= SEGMENTS; i++) {
+      const p = new THREE.Vector3(anchor.x, anchor.y - i * segLen, 0);
+      pts.push({ pos: p.clone(), prev: p.clone(), fixed: i === 0 });
+    }
   }
-  const GRAV = -14;
-  const DAMP = 0.985;
+  layout();
+  window.addEventListener('resize', layout);
 
   // 状态
   let triggered = false;
@@ -152,41 +171,42 @@ export function createLanyard(options = {}) {
     return raycaster.intersectObject(card, false).length > 0;
   }
 
-  // ── 指针交互 ──
+  // ── 指针交互（window 捕获阶段，命中卡片才拦截，不挡 3D 球）──
   function onPointerDown(e) {
     if (!triggered || destroyed) return;
     if (!hitTest(e.clientX, e.clientY)) return;
     dragging = true;
-    canvas.style.cursor = 'grabbing';
+    e.stopPropagation();
+    e.preventDefault();
+    document.body.style.cursor = 'grabbing';
     const w = screenToWorld(e.clientX, e.clientY);
     const cardPos = pts[SEGMENTS].pos;
+    lastCardPos.copy(cardPos);
     dragOffset.copy(cardPos).sub(w);
-    // 拖拽时解除约束
-    pts[SEGMENTS].fixed = false;
   }
   function onPointerMove(e) {
     if (!dragging) return;
+    e.stopPropagation();
     const w = screenToWorld(e.clientX, e.clientY);
     w.add(dragOffset);
     const cardPos = pts[SEGMENTS].pos;
-    // 记录速度
     cardVel.copy(cardPos).sub(lastCardPos);
     lastCardPos.copy(cardPos);
     cardPos.copy(w);
-    // 拖拽时同步 prev 让卡片跟随
     pts[SEGMENTS].prev.copy(cardPos);
   }
-  function onPointerUp() {
+  function onPointerUp(e) {
     if (!dragging) return;
     dragging = false;
-    canvas.style.cursor = 'grab';
+    e.stopPropagation();
+    document.body.style.cursor = '';
     // 松手给一点抛掷速度
-    pts[SEGMENTS].prev.copy(pts[SEGMENTS].pos).sub(cardVel.multiplyScalar(0.85));
+    pts[SEGMENTS].prev.copy(pts[SEGMENTS].pos).sub(cardVel.clone().multiplyScalar(0.85));
   }
 
-  canvas.addEventListener('pointerdown', onPointerDown);
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointerdown', onPointerDown, true);
+  window.addEventListener('pointermove', onPointerMove, true);
+  window.addEventListener('pointerup', onPointerUp, true);
 
   // ── 物理步进 ──
   function step(dt) {
@@ -201,7 +221,6 @@ export function createLanyard(options = {}) {
       p.pos.x += vx;
       p.pos.y += vy + GRAV * sdt * sdt;
     }
-    // 距离约束（多次迭代更稳）
     for (let iter = 0; iter < 6; iter++) {
       for (let i = 0; i < SEGMENTS; i++) {
         const a = pts[i], b = pts[i + 1];
@@ -215,7 +234,6 @@ export function createLanyard(options = {}) {
         if (!b.fixed) { b.pos.x -= ax; b.pos.y -= ay; }
       }
     }
-    // 锚点保持
     pts[0].pos.copy(anchor);
     pts[0].prev.copy(anchor);
   }
@@ -237,10 +255,8 @@ export function createLanyard(options = {}) {
   function updateCard() {
     const tail = pts[SEGMENTS].pos;
     const prev = pts[SEGMENTS - 1].pos;
-    // 卡片方向：沿绳子末端方向
     const dir = new THREE.Vector3().subVectors(tail, prev).normalize();
     cardGroup.position.copy(tail);
-    // 让卡片平面垂直于绳子方向，且朝向相机（简单做法：绕 Z 轴旋转）
     const angle = Math.atan2(dir.x, -dir.y);
     cardGroup.rotation.z = angle;
   }
@@ -261,8 +277,6 @@ export function createLanyard(options = {}) {
     if (destroyed) return;
     triggered = true;
     canvas.style.opacity = '1';
-    canvas.style.pointerEvents = 'auto';
-    canvas.style.cursor = 'grab';
     // 给一点初始摆动
     pts[SEGMENTS].prev.x = pts[SEGMENTS].pos.x + 0.35;
     if (opts.onReady) opts.onReady();
@@ -271,9 +285,11 @@ export function createLanyard(options = {}) {
   function destroy() {
     destroyed = true;
     if (rafId) cancelAnimationFrame(rafId);
-    canvas.removeEventListener('pointerdown', onPointerDown);
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('resize', layout);
+    window.removeEventListener('pointerdown', onPointerDown, true);
+    window.removeEventListener('pointermove', onPointerMove, true);
+    window.removeEventListener('pointerup', onPointerUp, true);
+    document.body.style.cursor = '';
     cardGeo.dispose();
     cardMat.dispose();
     cardMat.map && cardMat.map.dispose();
