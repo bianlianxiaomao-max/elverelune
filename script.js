@@ -135,12 +135,22 @@
     }
   }
 
-  // ── 滚轮 ──
+  // ── 滚轮：非聚焦 = 自由旋转；聚焦 = 一帧一帧切换中心照片 ──
+  var lastWheelT = 0;
   window.addEventListener('wheel', function (e) {
     if (!opened) return;
     e.preventDefault();
-    velocity += (e.deltaY > 0 ? 1 : -1) * 0.0009;
-    velocity = Math.max(-0.006, Math.min(0.006, velocity));
+    if (focusIdx >= 0 && targetZoom > 1) {
+      // 聚焦：滚动切换中心展示照片（格点式，类似 iPhone 计时器滚轮）
+      var now = performance.now();
+      if (now - lastWheelT > 220) {
+        focusIdx = (focusIdx + (e.deltaY > 0 ? 1 : -1) + N) % N;
+        lastWheelT = now;
+      }
+    } else {
+      velocity += (e.deltaY > 0 ? 1 : -1) * 0.0009;
+      velocity = Math.max(-0.006, Math.min(0.006, velocity));
+    }
   }, { passive: false });
 
   // ── 点击聚焦 / 再点返回 ──
@@ -174,18 +184,27 @@
   }
   window.addEventListener('pointermove', onPointerMove);
 
-  // ── 触摸 ──
+  // ── 触摸：非聚焦 = 自由旋转；聚焦 = 滑动切换中心照片 ──
   var touchLastX = 0;
+  var touchAccum = 0;
   window.addEventListener('touchstart', function (e) {
     if (!opened) return;
     touchLastX = e.touches[0].clientX;
+    touchAccum = 0;
   }, { passive: true });
   window.addEventListener('touchmove', function (e) {
     if (!opened) return;
     var x = e.touches[0].clientX;
     var dx = x - touchLastX;
     touchLastX = x;
-    rotation += dx * 0.005;
+    if (focusIdx >= 0 && targetZoom > 1) {
+      // 聚焦：滑动切换（累计 40px 切一张）
+      touchAccum += dx;
+      if (touchAccum > 40) { focusIdx = (focusIdx - 1 + N) % N; touchAccum = 0; }
+      else if (touchAccum < -40) { focusIdx = (focusIdx + 1 + N) % N; touchAccum = 0; }
+    } else {
+      rotation += dx * 0.005;
+    }
   }, { passive: true });
 
   // ── resize ──
