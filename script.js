@@ -1,9 +1,9 @@
 /* ============================================================
    ELVERE & LUNE — 倾斜椭圆照片环（2D）
-   - 照片端正，沿椭圆轨道排列
-   - 整个椭圆倾斜 20-30°，往左下偏移
-   - 开场：照片一张一张出现
-   - 点击照片：旋转放大，聚焦到只显示弧段
+   - 照片端正（不旋转），沿倾斜椭圆轨道排列
+   - 整个椭圆倾斜 20-30°（只旋转位置坐标，照片保持端正）
+   - 开场：照片在原地一张一张放大出现
+   - 点击照片：聚焦放大到只显示一个弧段（中间大、两边小）
    - 滚轮/滑动：旋转浏览
    ============================================================ */
 
@@ -26,6 +26,7 @@
   var focusIdx = -1;
 
   var CW, RX, RY, TILT, SHIFT_X, SHIFT_Y;
+  var TILT_RAD = 0;
 
   function computeLayout() {
     var w = window.innerWidth;
@@ -38,36 +39,52 @@
     // 照片宽：根据弧长反推，让 15 张照片之间有明显而均匀的间距
     CW = RX * 0.28;
 
-    TILT = 22;                    // 倾斜角度（20-30°）
+    TILT = 22;                    // 椭圆倾斜角度（只倾斜位置，照片端正）
+    TILT_RAD = TILT * Math.PI / 180;
     SHIFT_X = isMobile ? -w * 0.04 : -w * 0.10;  // 左下偏移
     SHIFT_Y = isMobile ? h * 0.03 : h * 0.04;
 
     document.documentElement.style.setProperty('--cw', CW + 'px');
+    // 容器只做平移偏移，不 rotate（照片保持端正）
     carousel.style.transform =
-      'translate(' + SHIFT_X + 'px,' + SHIFT_Y + 'px) rotate(' + TILT + 'deg)';
+      'translate(' + SHIFT_X + 'px,' + SHIFT_Y + 'px)';
   }
 
-  // ── 每张照片：椭圆轨道坐标 + 聚焦缩放（照片端正，不旋转） ──
+  // ── 椭圆坐标 + 倾斜（只倾斜位置，照片不旋转） ──
+  function ellipsePos(a) {
+    var ex = RX * Math.cos(a);
+    var ey = RY * Math.sin(a);
+    var c = Math.cos(TILT_RAD);
+    var s = Math.sin(TILT_RAD);
+    return { x: ex * c - ey * s, y: ex * s + ey * c };
+  }
+
+  // ── 每张照片：椭圆轨道坐标 + 聚焦缩放 ──
   function placeCards() {
     var info = cards.map(function (card, i) {
       var a = i * baseAngle + rotation;
-      return { card: card, x: RX * Math.cos(a), y: RY * Math.sin(a), sin: Math.sin(a), cos: Math.cos(a) };
+      var p = ellipsePos(a);
+      return { card: card, x: p.x, y: p.y, sin: Math.sin(a), cos: Math.cos(a) };
     });
 
     var sorted = info.slice().sort(function (p, q) { return p.sin - q.sin; });
 
+    // 聚焦过渡系数 t：0 = 完整环（等大），1 = 聚焦弧段
+    var t = Math.min(1, Math.max(0, (zoom - 1) / 1.8));
+
     info.forEach(function (it) {
-      var s = 1 + (zoom - 1) * Math.pow(Math.max(0, it.cos), 3);
-      var rScale = zoom;
-      var x = RX * rScale * it.cos;
-      var y = RY * rScale * it.sin;
+      // 完整环：所有照片等大 s=1
+      // 聚焦：前方(cos≈1)放大、两侧递减、后方(cos<0)缩到几乎看不见
+      var w = Math.max(0, it.cos);
+      var sFocus = Math.pow(w, 2) * 2.0 + 0.15;
+      var s = 1 + t * (sFocus - 1);
       it.card.style.transform =
-        'translate(' + x + 'px,' + y + 'px) scale(' + s + ')';
+        'translate(' + it.x + 'px,' + it.y + 'px) scale(' + s + ')';
     });
     sorted.forEach(function (it, idx) { it.card.style.zIndex = 10 + idx; });
   }
 
-  // ── 开场：一张一张出现 ──
+  // ── 开场：照片在原地一张一张放大出现 ──
   function openIntro() {
     var start = performance.now();
     var per = 130, dur = 700;
@@ -79,11 +96,8 @@
         var begin = per * i;
         var local = Math.min(1, Math.max(0, (t - begin) / dur));
         var e = local < 1 ? 1 - Math.pow(1 - local, 3) : 1;
-        var a = i * baseAngle;
-        // 位置固定（最终椭圆位置），只做 scale 从 0 → 1 原地放大
-        var x = RX * Math.cos(a);
-        var y = RY * Math.sin(a);
-        card.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + e + ')';
+        var p = ellipsePos(i * baseAngle);
+        card.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px) scale(' + e + ')';
         card.style.opacity = local > 0 ? Math.min(1, local * 2.5) : 0;
       });
       if (t < total) {
@@ -121,7 +135,7 @@
     velocity = Math.max(-0.006, Math.min(0.006, velocity));
   }, { passive: false });
 
-  // ── 点击聚焦 ──
+  // ── 点击聚焦 / 再点返回 ──
   function onClick(e) {
     if (!opened) return;
     var el = document.elementFromPoint(e.clientX, e.clientY);
