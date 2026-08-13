@@ -4,117 +4,105 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ELVERE &amp; LUNE — Natural Crystal Bracelets</title>
-
-  <!-- Fonts（本地化，不再依赖 Google Fonts） -->
   <link rel="stylesheet" href="fonts.css">
-
   <link rel="stylesheet" href="style.css">
-
-  <!-- noscript fallback -->
-  <noscript>
-    <style>
-      .hero-3d__label,
-      .hero-3d__title,
-      .hero-3d__subtitle,
-      .hero-3d__scroll,
-      .collection__header,
-      .gallery-oval { opacity: 1 !important; }
-    </style>
-  </noscript>
-  <script>
-    // Force ParticleText canvas full-screen + resize
-    var done = false;
-    var check = setInterval(function() {
-      var c = document.querySelector('#hero3d canvas[aria-hidden]');
-      if (c && !done) {
-        done = true;
-        c.style.position = 'fixed';
-        c.style.top = '0'; c.style.left = '0';
-        c.style.width = '100vw'; c.style.height = '100vh';
-        // Directly call resize every 200ms until it works
-        var tries = 0;
-        var retry = setInterval(function() {
-          if (typeof particleText !== 'undefined' && particleText.resize) {
-            particleText.resize();
-            clearInterval(retry);
-          } else if (tries++ > 30) { clearInterval(retry); }
-        }, 200);
-        clearInterval(check);
-      }
-    }, 500);
-  </script>
 </head>
 <body>
 
-  <!-- grain texture overlay -->
-  <div class="grain" aria-hidden="true"></div>
-
-  <!-- transition blackout overlay (fades in on section switch) -->
-  <div class="transition-black" id="transitionBlack" aria-hidden="true"></div>
-
-  <!-- ============================================================
-       SECTION 1: 3D FLOATING HERO
-       ============================================================ -->
-  <section class="hero-3d" id="hero3d">
-    <div class="hero-3d__bg" aria-hidden="true"></div>
-    <canvas class="hero-3d__particles" id="heroParticles" aria-hidden="true"></canvas>
-
-    <div class="hero-3d__stage" id="heroStage">
-      <div class="hero-3d__product" id="heroProduct">
-        <img class="hero-3d__img" src="images/product01.jpg" alt="ELVERE &amp; LUNE Signature Bracelet" draggable="false" />
-      </div>
-      <div class="hero-3d__reflection" aria-hidden="true"></div>
+  <!-- ============ 开场动画层 ============ -->
+  <div class="intro" id="intro" aria-hidden="true">
+    <div class="intro__brand">ELVERE &amp; LUNE</div>
+    <div class="intro__product">
+      <img src="images/product01.jpg" alt="Signature bracelet">
     </div>
+  </div>
 
-    <div class="hero-3d__brand" id="heroBrand">
-      <p class="hero-3d__label">NATURAL CRYSTALS</p>
-      <h1 class="hero-3d__title">
-        <span class="hero-3d__word">ELVERE</span>
-        <span class="hero-3d__amp">&amp;</span>
-        <span class="hero-3d__word">LUNE</span>
-      </h1>
-      <p class="hero-3d__subtitle">Objects shaped by nature.</p>
-    </div>
-
-    <div class="hero-3d__scroll" id="heroScroll">
-      <span class="hero-3d__scroll-line"></span>
-      <span class="hero-3d__scroll-text">CLICK TO VIEW</span>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       SECTION 2: GUIDE — TRANSITION PAGE
-       ============================================================ -->
-  <section class="guide" id="guide">
-    <div class="guide__bg" id="guideBg" aria-hidden="true"></div>
-    <div class="guide__text" id="guideText"></div>
-  </section>
-
-  <!-- ============================================================
-       SECTION 3: COLLECTION — ELLIPTICAL FLOATING SHOWCASE
-       ============================================================ -->
-  <section class="collection" id="collection">
-
-    <div class="collection__header">
+  <!-- ============ 商品区 ============ -->
+  <main class="collection">
+    <header class="collection__head">
       <h2 class="collection__title">THE COLLECTION</h2>
-      <p class="collection__subtitle">A constellation of natural stones.</p>
+      <p class="collection__subtitle">Natural crystals, shaped by nature.</p>
+    </header>
+
+    <div class="grid">
+      <figure class="card">
+        <div class="card__media"><img src="images/product01.jpg" alt="Lune Pendant"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Lune Pendant</h3>
+          <p class="card__mat">Silver moonstone</p>
+        </figcaption>
+      </figure>
+      <figure class="card">
+        <div class="card__media"><img src="images/product02.jpg" alt="Solar Band"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Solar Band</h3>
+          <p class="card__mat">Golden sunstone</p>
+        </figcaption>
+      </figure>
+      <figure class="card">
+        <div class="card__media"><img src="images/product03.jpg" alt="Terra Bracelet"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Terra Bracelet</h3>
+          <p class="card__mat">Earth-toned agate</p>
+        </figcaption>
+      </figure>
+      <figure class="card">
+        <div class="card__media"><img src="images/product04.jpg" alt="Nova Ring"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Nova Ring</h3>
+          <p class="card__mat">Starlight quartz</p>
+        </figcaption>
+      </figure>
+      <figure class="card">
+        <div class="card__media"><img src="images/product05.jpg" alt="Ocean Drop"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Ocean Drop</h3>
+          <p class="card__mat">Deep blue lapis</p>
+        </figcaption>
+      </figure>
+      <figure class="card">
+        <div class="card__media"><img src="images/product06.jpg" alt="Forest Talisman"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Forest Talisman</h3>
+          <p class="card__mat">Green malachite</p>
+        </figcaption>
+      </figure>
+      <figure class="card">
+        <div class="card__media"><img src="images/product07.jpg" alt="Ember Earrings"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Ember Earrings</h3>
+          <p class="card__mat">Fire opal glow</p>
+        </figcaption>
+      </figure>
+      <figure class="card">
+        <div class="card__media"><img src="images/product08.jpg" alt="Silk Strand"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Silk Strand</h3>
+          <p class="card__mat">Pearl lustre</p>
+        </figcaption>
+      </figure>
+      <figure class="card">
+        <div class="card__media"><img src="images/product09.jpg" alt="Dusk Choker"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Dusk Choker</h3>
+          <p class="card__mat">Twilight amethyst</p>
+        </figcaption>
+      </figure>
+      <figure class="card">
+        <div class="card__media"><img src="images/product10.jpg" alt="Dawn Cuff"></div>
+        <figcaption class="card__info">
+          <h3 class="card__name">Dawn Cuff</h3>
+          <p class="card__mat">Rose quartz glow</p>
+        </figcaption>
+      </figure>
     </div>
+  </main>
 
-    <div id="infiniteMenuWrapper" style="position:relative;width:100%;flex:1;min-height:0;"></div>
+  <footer class="footer">
+    <span class="footer__brand">ELVERE &amp; LUNE</span>
+    <span class="footer__note">Natural crystal bracelets</span>
+  </footer>
 
-  </section>
-
-  <!-- ============================================================
-       SCRIPTS
-       ============================================================ -->
-  <script src="libs/gsap.min.js"></script>
-  <script src="libs/ScrollTrigger.min.js"></script>
-  <script src="libs/gl-matrix-min.js"></script>
-  <script src="components/InfiniteMenu/InfiniteMenu.js"></script>
-  <script src="components/ParticleBackground/ParticleBackground.js?v=2"></script>
-  <script src="components/ParticleText/ParticleText.js?v=13"></script>
-  <script src="components/TextType/TextType.js"></script>
-  <script type="module" src="components/GhostCursor/GhostCursor.js"></script>
-  <script type="module" src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
