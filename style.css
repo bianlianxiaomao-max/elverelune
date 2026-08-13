@@ -1,5 +1,5 @@
 /* ============================================================
-   ELVERE & LUNE — 白底极简 / 椭圆照片环
+   ELVERE & LUNE — 白底极简 / 平面椭圆照片环
    ============================================================ */
 
 *,
@@ -58,37 +58,21 @@ img {
   overflow: hidden;
 }
 
-.scene {
-  position: absolute;
-  inset: 0;
-  perspective: 1400px;
-  perspective-origin: 50% 50%;
-}
-
-.tilt {
+/* 倾斜 + 左下偏移的容器 */
+.carousel {
   position: absolute;
   left: 50%;
   top: 50%;
   width: 0;
   height: 0;
-  transform-style: preserve-3d;
-  transform: rotateX(24deg) translateX(-16vw) translateY(6vh);
-}
-
-.ring {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 0;
-  height: 0;
-  transform-style: preserve-3d;
 }
 
 .card {
   position: absolute;
   left: 0;
   top: 0;
-  transform-style: preserve-3d;
+  width: 0;
+  height: 0;
   will-change: transform;
 }
 
@@ -103,7 +87,7 @@ img {
   overflow: hidden;
   border-radius: 2px;
   background: #f0eeea;
-  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), filter 0.5s ease;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .card__inner img {
@@ -112,13 +96,9 @@ img {
   object-fit: cover;
 }
 
-/* hover：当前图片向前 + 放大，其他图片变黑白 */
-.card.is-dim .card__inner {
-  filter: grayscale(1);
-}
-
+/* hover：当前图片向前放大 */
 .card.is-front .card__inner {
-  transform: translateZ(70px) scale(1.16);
+  transform: scale(1.18) translateY(-6px);
   z-index: 5;
 }
 
