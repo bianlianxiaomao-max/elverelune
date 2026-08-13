@@ -38,7 +38,7 @@
     CW = RX * 0.38;
 
     // 聚焦照片宽（竖排三张充满窗口，只留文字）
-    CW_FOCUS = isMobile ? Math.min(w * 0.82, 320) : Math.min(w * 0.42, 340);
+    CW_FOCUS = isMobile ? Math.min(w * 0.9, 350) : Math.min(h * 0.42, 420);
 
     TILT = 22;
     TILT_RAD = TILT * Math.PI / 180;
@@ -71,19 +71,22 @@
       // 环布局
       var ringX = ep.x, ringY = ep.y, ringS = 1;
 
-      // 竖排聚焦布局（相对 focusIdx）
+      // 竖排聚焦布局（相对 focusIdx，带圆柱面弧度）
       var rel = ((i - focusIdx) % N + N) % N;
       if (rel > N / 2) rel -= N;
-      var gap = cw * 0.14;
+      var gap = cw * 0.16;
       var focusX = 0;
       var focusY = rel * (cw * 0.75 + gap);
-      var focusS = rel === 0 ? 1 : (Math.abs(rel) === 1 ? 0.72 : 0);
+      var focusS = rel === 0 ? 1 : (Math.abs(rel) === 1 ? 0.7 : 0);
+      // 弧度：上方照片向上仰起（顶部向后），下方照片向下俯冲（底部向后）
+      var focusRX = rel === 0 ? 0 : (rel < 0 ? 32 : -32);
 
       var x = ringX + (focusX - ringX) * t;
       var y = ringY + (focusY - ringY) * t;
       var s = ringS + (focusS - ringS) * t;
+      var rx = focusRX * t;
 
-      return { card: card, x: x, y: y, s: s, sin: Math.sin(a) };
+      return { card: card, x: x, y: y, s: s, rx: rx, sin: Math.sin(a) };
     });
 
     info.sort(function (p, q) {
@@ -92,7 +95,7 @@
     });
     info.forEach(function (it, idx) {
       it.card.style.transform =
-        'translate(' + it.x + 'px,' + it.y + 'px) scale(' + it.s + ')';
+        'translate(' + it.x + 'px,' + it.y + 'px) perspective(900px) rotateX(' + it.rx + 'deg) scale(' + it.s + ')';
       it.card.style.zIndex = 10 + idx;
     });
   }

@@ -58,13 +58,14 @@ img {
   overflow: hidden;
 }
 
-/* 倾斜 + 左下偏移的容器 */
+/* 倾斜 + 左下偏移的容器（透视用于聚焦滚轮弧度） */
 .carousel {
   position: absolute;
   left: 50%;
   top: 50%;
   width: 0;
   height: 0;
+  perspective: 650px;
 }
 
 .card {
