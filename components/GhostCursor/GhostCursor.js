@@ -2,11 +2,11 @@
  * GhostCursor — ReactBits FBM domain-warped shader
  * Integrated from verified standalone test page
  */
-import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import * as THREE from '../../libs/three/build/three.module.js';
+import { EffectComposer } from '../../libs/three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from '../../libs/three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from '../../libs/three/examples/jsm/postprocessing/ShaderPass.js';
+import { UnrealBloomPass } from '../../libs/three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 export function createGhostCursor(parentEl, options = {}) {
   const opts = {

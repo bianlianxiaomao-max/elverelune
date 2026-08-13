@@ -1,7 +1,7 @@
 /**
  * Lanyard — vanilla Three.js 挂牌彩蛋
  * 复现 React Bits <Lanyard /> 的核心效果：挂绳 + 卡片 + 物理摆动 + 可拖拽。
- * 零新增依赖（复用项目已有的 three，走 importmap）。
+ * 零新增依赖（复用项目已有的 three，本地相对路径引入）。
  *
  * 全屏覆盖（跟浏览器窗口一样大），挂牌从屏幕左上角垂下，可拖到全屏任意位置。
  * 用 window 捕获阶段监听 + 命中检测，命中卡片才拖拽，不挡 3D 球交互。
@@ -12,7 +12,7 @@
  *   lanyard.trigger();   // 挂牌从左上角掉落挂起
  *   lanyard.destroy();
  */
-import * as THREE from 'three';
+import * as THREE from '../../libs/three/build/three.module.js';
 
 const SEGMENTS = 7;         // 绳子 verlet 分段数
 const SCALE = 0.8;          // 整体缩放
