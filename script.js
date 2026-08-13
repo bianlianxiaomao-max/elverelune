@@ -1,10 +1,9 @@
 /* ============================================================
    ELVERE & LUNE — 倾斜椭圆照片环（2D）
-   - 照片端正（不旋转），沿倾斜椭圆轨道排列
-   - 整个椭圆倾斜 20-30°（只旋转位置坐标，照片保持端正）
-   - 开场：照片在原地一张一张放大出现
-   - 点击照片：聚焦放大到只显示一个弧段（中间大、两边小）
-   - 滚轮/滑动：旋转浏览
+   - 照片端正，沿椭圆轨道排列，间距紧凑（参考图 5-10%）
+   - 开场：照片一张一张原地放大出现，出现 5 张后环缓慢旋转
+   - 点击照片：聚焦成竖排三张（中间大、上下小）充满窗口
+   - 聚焦后滚动：一帧一帧切换中间照片（iPhone 计时器滚轮感）
    ============================================================ */
 
 (function () {
@@ -25,7 +24,7 @@
   var targetZoom = 1;
   var focusIdx = -1;
 
-  var CW, RX, RY, TILT, SHIFT_X, SHIFT_Y;
+  var CW, RX, RY, CW_FOCUS, TILT, SHIFT_X, SHIFT_Y;
   var TILT_RAD = 0;
 
   function computeLayout() {
@@ -33,24 +32,24 @@
     var h = window.innerHeight;
     var isMobile = w < 640;
 
-    // 椭圆：横向长轴 RX，纵向短轴 RY（RX > RY 形成椭圆）
+    // 环：接近正圆的椭圆（弧长均匀）+ 紧凑间距（参考图 5-10%）
     RX = isMobile ? Math.min(w * 0.36, 150) : Math.min(w * 0.21, 320);
-    RY = RX * 0.62;
-    // 照片宽：根据弧长反推，让 15 张照片之间有明显而均匀的间距
-    CW = RX * 0.28;
+    RY = RX * 0.95;
+    CW = RX * 0.38;
 
-    TILT = 22;                    // 椭圆倾斜角度（只倾斜位置，照片端正）
+    // 聚焦照片宽（竖排三张充满窗口，只留文字）
+    CW_FOCUS = isMobile ? Math.min(w * 0.82, 320) : Math.min(w * 0.42, 340);
+
+    TILT = 22;
     TILT_RAD = TILT * Math.PI / 180;
-    SHIFT_X = isMobile ? -w * 0.04 : -w * 0.10;  // 左下偏移
+    SHIFT_X = isMobile ? -w * 0.04 : -w * 0.10;
     SHIFT_Y = isMobile ? h * 0.03 : h * 0.04;
 
     document.documentElement.style.setProperty('--cw', CW + 'px');
-    // 容器只做平移偏移，不 rotate（照片保持端正）
     carousel.style.transform =
       'translate(' + SHIFT_X + 'px,' + SHIFT_Y + 'px)';
   }
 
-  // ── 椭圆坐标 + 倾斜（只倾斜位置，照片不旋转） ──
   function ellipsePos(a) {
     var ex = RX * Math.cos(a);
     var ey = RY * Math.sin(a);
@@ -59,32 +58,46 @@
     return { x: ex * c - ey * s, y: ex * s + ey * c };
   }
 
-  // ── 每张照片：椭圆轨道坐标 + 聚焦缩放 ──
+  // ── 每张照片：环布局 ↔ 竖排聚焦布局 插值 ──
   function placeCards() {
+    var t = Math.min(1, Math.max(0, (zoom - 1) / 1.8));
+    var cw = CW + t * (CW_FOCUS - CW);
+    document.documentElement.style.setProperty('--cw', cw + 'px');
+
     var info = cards.map(function (card, i) {
       var a = i * baseAngle + rotation;
-      var p = ellipsePos(a);
-      return { card: card, x: p.x, y: p.y, sin: Math.sin(a), cos: Math.cos(a) };
+      var ep = ellipsePos(a);
+
+      // 环布局
+      var ringX = ep.x, ringY = ep.y, ringS = 1;
+
+      // 竖排聚焦布局（相对 focusIdx）
+      var rel = ((i - focusIdx) % N + N) % N;
+      if (rel > N / 2) rel -= N;
+      var gap = cw * 0.14;
+      var focusX = 0;
+      var focusY = rel * (cw * 0.75 + gap);
+      var focusS = rel === 0 ? 1 : (Math.abs(rel) === 1 ? 0.72 : 0);
+
+      var x = ringX + (focusX - ringX) * t;
+      var y = ringY + (focusY - ringY) * t;
+      var s = ringS + (focusS - ringS) * t;
+
+      return { card: card, x: x, y: y, s: s, sin: Math.sin(a) };
     });
 
-    var sorted = info.slice().sort(function (p, q) { return p.sin - q.sin; });
-
-    // 聚焦过渡系数 t：0 = 完整环（等大），1 = 聚焦弧段
-    var t = Math.min(1, Math.max(0, (zoom - 1) / 1.8));
-
-    info.forEach(function (it) {
-      // 完整环：所有照片等大 s=1
-      // 聚焦：只显示目标照片 + 左右各一张（三张弧段），中间大、两边小
-      var w = Math.max(0, it.cos);
-      var sFocus = Math.pow(w, 5) * 1.6 + 0.08;
-      var s = 1 + t * (sFocus - 1);
+    info.sort(function (p, q) {
+      if (p.s !== q.s) return p.s - q.s;
+      return p.sin - q.sin;
+    });
+    info.forEach(function (it, idx) {
       it.card.style.transform =
-        'translate(' + it.x + 'px,' + it.y + 'px) scale(' + s + ')';
+        'translate(' + it.x + 'px,' + it.y + 'px) scale(' + it.s + ')';
+      it.card.style.zIndex = 10 + idx;
     });
-    sorted.forEach(function (it, idx) { it.card.style.zIndex = 10 + idx; });
   }
 
-  // ── 开场：照片在原地一张一张放大出现 ──
+  // ── 开场：照片一张一张原地放大出现，出现 5 张后环缓慢旋转 ──
   function openIntro() {
     var start = performance.now();
     var per = 130, dur = 700;
@@ -92,11 +105,12 @@
 
     function tick(now) {
       var t = now - start;
+      if (t > per * 4) rotation += 0.0008;
       cards.forEach(function (card, i) {
         var begin = per * i;
         var local = Math.min(1, Math.max(0, (t - begin) / dur));
         var e = local < 1 ? 1 - Math.pow(1 - local, 3) : 1;
-        var p = ellipsePos(i * baseAngle);
+        var p = ellipsePos(i * baseAngle + rotation);
         card.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px) scale(' + e + ')';
         card.style.opacity = local > 0 ? Math.min(1, local * 2.5) : 0;
       });
@@ -119,10 +133,7 @@
     lastT = now;
     if (opened) {
       if (focusIdx >= 0 && targetZoom > 1) {
-        // 聚焦：把目标照片平滑旋到最前方（a=0，cos 最大）
-        var ta = focusIdx * baseAngle + rotation;
-        ta = Math.atan2(Math.sin(ta), Math.cos(ta)); // 归一化到 [-π, π]
-        rotation -= ta * 0.08;
+        // 聚焦：不自动旋转，滚动切换由 focusIdx 驱动
         velocity = 0;
       } else {
         rotation += AUTO_SPEED * dt + velocity * dt;
@@ -135,13 +146,12 @@
     }
   }
 
-  // ── 滚轮：非聚焦 = 自由旋转；聚焦 = 一帧一帧切换中心照片 ──
+  // ── 滚轮：非聚焦 = 自由旋转；聚焦 = 一帧一帧切换 ──
   var lastWheelT = 0;
   window.addEventListener('wheel', function (e) {
     if (!opened) return;
     e.preventDefault();
     if (focusIdx >= 0 && targetZoom > 1) {
-      // 聚焦：滚动切换中心展示照片（格点式，类似 iPhone 计时器滚轮）
       var now = performance.now();
       if (now - lastWheelT > 220) {
         focusIdx = (focusIdx + (e.deltaY > 0 ? 1 : -1) + N) % N;
@@ -184,7 +194,7 @@
   }
   window.addEventListener('pointermove', onPointerMove);
 
-  // ── 触摸：非聚焦 = 自由旋转；聚焦 = 滑动切换中心照片 ──
+  // ── 触摸：非聚焦 = 自由旋转；聚焦 = 滑动切换 ──
   var touchLastX = 0;
   var touchAccum = 0;
   window.addEventListener('touchstart', function (e) {
@@ -198,7 +208,6 @@
     var dx = x - touchLastX;
     touchLastX = x;
     if (focusIdx >= 0 && targetZoom > 1) {
-      // 聚焦：滑动切换（累计 40px 切一张）
       touchAccum += dx;
       if (touchAccum > 40) { focusIdx = (focusIdx - 1 + N) % N; touchAccum = 0; }
       else if (touchAccum < -40) { focusIdx = (focusIdx + 1 + N) % N; touchAccum = 0; }
