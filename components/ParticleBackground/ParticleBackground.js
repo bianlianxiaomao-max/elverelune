@@ -145,8 +145,10 @@
     var rect = self.container.getBoundingClientRect();
     self.dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-    self.canvas.width = rect.width * self.dpr;
-    self.canvas.height = rect.height * self.dpr;
+    self.canvas.width = Math.max(1, Math.floor(rect.width * self.dpr));
+    self.canvas.height = Math.max(1, Math.floor(rect.height * self.dpr));
+    // 关键：把 ctx 坐标缩放到 DPR，否则粒子只画在左上角 1/dpr 区域
+    self.ctx.setTransform(self.dpr, 0, 0, self.dpr, 0, 0);
 
     self.displayW = rect.width;
     self.displayH = rect.height;
@@ -356,7 +358,7 @@
 
     if (!ctx || !tex) return;
 
-    ctx.clearRect(0, 0, self.canvas.width, self.canvas.height);
+    ctx.clearRect(0, 0, self.displayW, self.displayH);
 
     // Sort by depth for painter's algorithm (far → near)
     // Fast in-place sort (particle count is capped, ~250 max)
