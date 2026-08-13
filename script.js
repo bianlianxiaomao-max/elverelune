@@ -34,7 +34,7 @@
     var isMobile = w < 640;
 
     // 椭圆：横向长轴 RX，纵向短轴 RY（RX > RY 形成椭圆）
-    RX = isMobile ? Math.min(w * 0.34, 132) : Math.min(w * 0.19, 285);
+    RX = isMobile ? Math.min(w * 0.36, 150) : Math.min(w * 0.21, 320);
     RY = RX * 0.62;
     // 照片宽：根据弧长反推，让 15 张照片之间有明显而均匀的间距
     CW = RX * 0.28;
