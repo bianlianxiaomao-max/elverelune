@@ -197,21 +197,27 @@
   }
   window.addEventListener('pointermove', onPointerMove);
 
-  // ── 触摸：非聚焦 = 自由旋转；聚焦 = 滑动切换 ──
+  // ── 触摸：非聚焦 = 水平滑动旋转；聚焦 = 上下滑动切换中心照片 ──
   var touchLastX = 0;
+  var touchLastY = 0;
   var touchAccum = 0;
   window.addEventListener('touchstart', function (e) {
     if (!opened) return;
     touchLastX = e.touches[0].clientX;
+    touchLastY = e.touches[0].clientY;
     touchAccum = 0;
   }, { passive: true });
   window.addEventListener('touchmove', function (e) {
     if (!opened) return;
     var x = e.touches[0].clientX;
+    var y = e.touches[0].clientY;
     var dx = x - touchLastX;
+    var dy = y - touchLastY;
     touchLastX = x;
+    touchLastY = y;
     if (focusIdx >= 0 && targetZoom > 1) {
-      touchAccum += dx;
+      // 竖排：上下滑动切换（上滑=下一张，下滑=上一张）
+      touchAccum += dy;
       if (touchAccum > 40) { focusIdx = (focusIdx - 1 + N) % N; touchAccum = 0; }
       else if (touchAccum < -40) { focusIdx = (focusIdx + 1 + N) % N; touchAccum = 0; }
     } else {
