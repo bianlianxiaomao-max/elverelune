@@ -33,14 +33,14 @@
     var isMobile = w < 640;
 
     // 椭圆：横向长轴 RX，纵向短轴 RY（RX > RY 形成椭圆）
-    RX = isMobile ? Math.min(w * 0.38, 155) : Math.min(w * 0.22, 320);
-    RY = RX * 0.60;
+    RX = isMobile ? Math.min(w * 0.34, 132) : Math.min(w * 0.19, 285);
+    RY = RX * 0.62;
     // 照片宽：根据弧长反推，让 15 张照片之间有明显而均匀的间距
     CW = RX * 0.28;
 
-    TILT = 25;                    // 倾斜角度（20-30°）
-    SHIFT_X = isMobile ? -w * 0.06 : -w * 0.14;  // 左下偏移
-    SHIFT_Y = isMobile ? h * 0.05 : h * 0.07;
+    TILT = 22;                    // 倾斜角度（20-30°）
+    SHIFT_X = isMobile ? -w * 0.04 : -w * 0.10;  // 左下偏移
+    SHIFT_Y = isMobile ? h * 0.03 : h * 0.04;
 
     document.documentElement.style.setProperty('--cw', CW + 'px');
     carousel.style.transform =
