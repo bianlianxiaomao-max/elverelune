@@ -74,9 +74,9 @@
 
     info.forEach(function (it) {
       // 完整环：所有照片等大 s=1
-      // 聚焦：前方(cos≈1)放大、两侧递减、后方(cos<0)缩到几乎看不见
+      // 聚焦：只显示目标照片 + 左右各一张（三张弧段），中间大、两边小
       var w = Math.max(0, it.cos);
-      var sFocus = Math.pow(w, 2) * 2.0 + 0.15;
+      var sFocus = Math.pow(w, 5) * 1.6 + 0.08;
       var s = 1 + t * (sFocus - 1);
       it.card.style.transform =
         'translate(' + it.x + 'px,' + it.y + 'px) scale(' + s + ')';
@@ -118,9 +118,17 @@
     var dt = Math.min(32, now - lastT);
     lastT = now;
     if (opened) {
-      rotation += AUTO_SPEED * dt + velocity * dt;
-      velocity *= 0.94;
-      if (Math.abs(velocity) < 0.0005) velocity = 0;
+      if (focusIdx >= 0 && targetZoom > 1) {
+        // 聚焦：把目标照片平滑旋到最前方（a=0，cos 最大）
+        var ta = focusIdx * baseAngle + rotation;
+        ta = Math.atan2(Math.sin(ta), Math.cos(ta)); // 归一化到 [-π, π]
+        rotation -= ta * 0.08;
+        velocity = 0;
+      } else {
+        rotation += AUTO_SPEED * dt + velocity * dt;
+        velocity *= 0.94;
+        if (Math.abs(velocity) < 0.0005) velocity = 0;
+      }
       zoom += (targetZoom - zoom) * 0.08;
       if (Math.abs(targetZoom - zoom) < 0.005) zoom = targetZoom;
       placeCards();
